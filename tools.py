@@ -68,44 +68,55 @@ def get_entered_serial():
                 break
             print("Serial Must Be Not Empty, 7 Characters, Have No Special Characters, And Must Have No Spaces. Try Again.")
     return serial
+
+def do_reset(s):
+    create_bios(s)
+    time.sleep(1.5)
+
+    if mdl == "7440" or mdl == "7450":
+        proc = subprocess.run("C:\\FPT\\40\\FPT.exe -BIOS -F C:\\TOOLS\\{0}_RES\\BIOS.bin -P C:\\FPT\\40\\fparts.txt".format(mdl))
+    elif mdl == "9030":
+        proc = subprocess.run("C:\\FPT\\30\\FPT.exe -BIOS -F C:\\TOOLS\\9030_RES\\BIOS.bin -P C:\\FPT\\30\\fparts.txt")
+    
+    while proc.returncode != 0:
+        print("Process Failed Retrying..")
+        time.sleep(1)
+        proc = subprocess.run(proc.args)
+    
+    reset_bios()
         
 def serial_reset():
     print('Running Serial Reset For {0} AIO.'.format(mdl))
     serial = get_entered_serial()
-    if mdl == "7440":
-        create_bios(serial)
-        time.sleep(1)
-        subprocess.run("C:\\FPT\\40\\FPT.exe -BIOS -F C:\\TOOLS\\7440_RES\\BIOS.bin -P C:\\FPT\\40\\fparts.txt")
-        reset_bios()
-    elif mdl == "7450":
-          create_bios(serial)
-          time.sleep(1)
-          subprocess.run("C:\\FPT\\40\\FPT.exe -BIOS -F C:\\TOOLS\\7450_RES\\BIOS.bin -P C:\\FPT\\40\\fparts.txt")
-          reset_bios()
+    do_reset(serial)
+
+def do_long_boot():
+    if mdl == "7440" or mdl == "7450":
+        proc = subprocess.run("C:\\FPT\\40\\FPT.exe -ME -F C:\\TOOLS\\{0}_LB\\ME.bin -P C:\\FPT\\40\\fparts.txt".format(mdl))
     elif mdl == "9030":
-          create_bios(serial)
-          time.sleep(1)
-          subprocess.run("C:\\FPT\\30\\FPT.exe -BIOS -F C:\\TOOLS\\9030_RES\\BIOS.bin -P C:\\FPT\\30\\fparts.txt")
-          reset_bios()
+        proc = subprocess.run("C:\\FPT\\30\\FPT.exe -ME -F C:\\TOOLS\\9030_LB\\ME.bin -P C:\\FPT\\30\\fparts.txt")
+        
+    while proc.returncode != 0:
+        print("Process Failed Retrying..")
+        time.sleep(1)
+        proc = subprocess.run(proc.args)
+
+    if mdl == "9030":
+        proc = subprocess.run("C:\\FPT\\30\\FPT.exe -DESC -F C:\\TOOLS\\9030_LB\\DESC.bin -P C:\\FPT\\30\\fparts.txt")
+        while proc.returncode != 0:
+            print("Process Failed Retrying..")
+            time.sleep(1)
+            proc = subprocess.run(proc.args)
+
+    if mdl == "7440" or mdl == "7450":
+        subprocess.run("C:\\FPT\\40\\FPT.exe -greset -P C:\\FPT\\40\\fparts.txt")
+    elif mdl == "9030":
+        subprocess.run("C:\\FPT\\30\\FPT.exe -greset -P C:\\FPT\\30\\fparts.txt")
+        
 
 def long_boot():
     print('Running Longboot For {0} AIO.'.format(mdl))
-    if mdl == "7440":
-        subprocess.run("C:\\FPT\\40\\FPT.exe -ME -F C:\\TOOLS\\7440_LB\\ME.bin -P C:\\FPT\\40\\fparts.txt")
-        print("Press Any Key To Finish Longboot And Restart If No Red Text Is Present If It's Present Please Close This Tool And Re-Run It.")
-        os.system("pause")
-        subprocess.run("C:\\FPT\\40\\FPT.exe -greset -P C:\\FPT\\40\\fparts.txt")
-    elif mdl == "7450":
-        subprocess.run("C:\\FPT\\40\\FPT.exe -ME -F C:\\TOOLS\\7450_LB\\ME.bin -P C:\\FPT\\40\\fparts.txt")
-        print("Press Any Key To Finish Longboot And Restart If No Red Text Is Present If It's Present Please Close This Tool And Re-Run It.")
-        os.system("pause")
-        subprocess.run("C:\\FPT\\40\\FPT.exe -greset -P C:\\FPT\\40\\fparts.txt")
-    elif mdl == "9030":
-         subprocess.run("C:\\FPT\\30\\FPT.exe -ME -F C:\\TOOLS\\9030_LB\\ME.bin -P C:\\FPT\\30\\fparts.txt")
-         subprocess.run("C:\\FPT\\30\\FPT.exe -DESC -F C:\\TOOLS\\9030_LB\\DESC.bin -P C:\\FPT\\30\\fparts.txt")
-         print("Press Any Key To Finish Longboot And Restart If No Red Text Is Present If It's Present Please Close This Tool And Re-Run It.")
-         os.system("pause")
-         subprocess.run("C:\\FPT\\30\\FPT.exe -greset -P C:\\FPT\\30\\fparts.txt")
+    do_long_boot()
          
 
 selection = "0"
