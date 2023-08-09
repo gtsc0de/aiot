@@ -1,4 +1,6 @@
-import wmi, subprocess, os, time
+import wmi, subprocess, os, time, re
+
+special_regex = re.compile('[@_!#$%^&*()<>?/\|}{~:]')
 
 version = "0.10"
 
@@ -24,6 +26,10 @@ mdl = get_model()
 if not mdl:
     exit()
 
+if mdl == "7450UNK":
+    print("WARNING!!!!! THIS SYSTEM IS PRESUMED TO BE A 7450 IF YOU RUN ANY OF THE FOLLOWING FUNCTIONS AND THIS UNIT ISN'T A 7450 YOU COULD BRICK THE SYSTEM.")
+    mdl = "7450"
+    
 print("AIO Programming Tool {0}".format(version))    
 print("Current System Serial: {0}".format(o_serial))
 print("Functions available (Ensure Jumper Is Set Before Running Any Functions Below):")
@@ -31,98 +37,58 @@ print("1. Serial Reset")
 print("2. Longboot (Unit Will Restart)")
 print("3. Longboot & Serial Reset (Recommended For Mobo Swaps, Unit Will Restart)")
 
-def create_40_bios(s):
-    with open('C:\\TOOLS\\7440_RES\\BIOS.bin', 'rb+') as f:
-        f.seek(0x81412)
-        f.write(s.encode())
-        f.close()
-
-def reset_40_bios():
-    with open('C:\\TOOLS\\7440_RES\\BIOS.bin', 'rb+') as f:
-        f.seek(0x81412)
-        f.write(b'\x00\x00\x00\x00\x00\x00\x00')
-        f.close()
-
-def create_50_bios(s):
-    with open('C:\\TOOLS\\7450_RES\\BIOS.bin', 'rb+') as f:
-        f.seek(0x899C2)
-        f.write(s.encode())
-        f.close()
-
-def reset_50_bios():
-    with open('C:\\TOOLS\\7450_RES\\BIOS.bin', 'rb+') as f:
-        f.seek(0x899C2)
-        f.write(b'\x00\x00\x00\x00\x00\x00\x00')
-        f.close()
-
-def create_30_bios(s):
-    with open('C:\\TOOLS\\9030_RES\\BIOS.bin', 'rb+') as f:
-        f.seek(0x4814F)
-        f.write(s.encode())
-        f.close()
-
-def reset_30_bios():
-    with open('C:\\TOOLS\\9030_RES\\BIOS.bin', 'rb+') as f:
-        f.seek(0x4814F)
-        f.write(b'\x00\x00\x00\x00\x00\x00\x00')
-        f.close()
-
-def serial_reset():
-    if mdl == "7450UNK":
-        print("This unit was unknown and presumed as being a 7450 If This Is A 7450 AIO Press Any Key To Continue If Not Close This Tool.")
-        os.system("pause")
-    if mdl == "7450UNK":
-        print('Running Serial Reset For 7450 AIO.')
-    else:
-        print('Running Serial Reset For {0} AIO.'.format(mdl))
+def get_serial_offset():
     if mdl == "7440":
-        while True:
+        return 0x81412
+    elif mdl == "9030":
+        return 0x4814F
+    elif mdl == "7450":
+        return 0x899C2
+
+def create_bios(s):
+    with open('C:\\TOOLS\\{0}_RES\\BIOS.bin'.format(mdl), 'rb+') as f:
+        f.seek(get_serial_offset())
+        f.write(s.encode())
+        f.close()
+
+def reset_bios():
+    with open('C:\\TOOLS\\{0}_RES\\BIOS.bin'.format(mdl), 'rb+') as f:
+        f.seek(get_serial_offset())
+        f.write(b'\x00\x00\x00\x00\x00\x00\x00')
+        f.close()
+
+def get_entered_serial():
+    while True:
             serial = input("Please Enter The New Serial: ")
             if serial == o_serial:
                 print("Serial Already Set To Specified Serial, Press Any Key To Exit!")
                 os.system("pause")
                 exit(0)
-            if len(serial) <= 7 and serial:
+            if len(serial) <= 7 and serial and serial.find(' ') == -1 and special_regex.search(serial) == None:
                 break
-            print("Serial Must Be 7 Characters Or Less And Not Empty, Try Again.")
-        create_40_bios(serial)
+            print("Serial Must Be Not Empty, 7 Characters, Have No Special Characters, And Must Have No Spaces. Try Again.")
+    return serial
+        
+def serial_reset():
+    print('Running Serial Reset For {0} AIO.'.format(mdl))
+    serial = get_entered_serial()
+    if mdl == "7440":
+        create_bios(serial)
         time.sleep(1)
         subprocess.run("C:\\FPT\\40\\FPT.exe -BIOS -F C:\\TOOLS\\7440_RES\\BIOS.bin -P C:\\FPT\\40\\fparts.txt")
-        reset_40_bios()
-    elif mdl == "7450" or mdl == "7450UNK":
-          while True:
-              serial = input("Please Enter The New Serial: ")
-              if serial == o_serial:
-                print("Serial Already Set To Specified Serial, Press Any Key To Exit!")
-                os.system("pause")
-                exit(0)
-                break
-              if len(serial) <= 7 and serial:
-                  break
-              print("Serial Must Be 7 Characters Or Less And Not Empty, Try Again.")
-          create_50_bios(serial)
+        reset_bios()
+    elif mdl == "7450":
+          create_bios(serial)
           time.sleep(1)
           subprocess.run("C:\\FPT\\40\\FPT.exe -BIOS -F C:\\TOOLS\\7450_RES\\BIOS.bin -P C:\\FPT\\40\\fparts.txt")
-          reset_50_bios()
+          reset_bios()
     elif mdl == "9030":
-          while True:
-            serial = input("Please Enter The New Serial: ")
-            if serial == o_serial:
-                print("Serial Already Set To Specified Serial, Press Any Key To Exit!")
-                os.system("pause")
-                exit(0)
-            if len(serial) <= 7 and serial:
-                break
-            print("Serial Must Be 7 Characters Or Less And Not Empty, Try Again.")
-          create_30_bios(serial)
+          create_bios(serial)
           time.sleep(1)
           subprocess.run("C:\\FPT\\30\\FPT.exe -BIOS -F C:\\TOOLS\\9030_RES\\BIOS.bin -P C:\\FPT\\30\\fparts.txt")
-          reset_30_bios()
+          reset_bios()
 
 def long_boot():
-    if mdl == "7450UNK":
-        print("This unit was unknown and presumed as being a 7450 If This Is A 7450 AIO Press Any Key To Continue If Not Close This Tool.")
-        os.system("pause")
     print('Running Longboot For {0} AIO.'.format(mdl))
     if mdl == "7440":
         subprocess.run("C:\\FPT\\40\\FPT.exe -ME -F C:\\TOOLS\\7440_LB\\ME.bin -P C:\\FPT\\40\\fparts.txt")
@@ -154,12 +120,8 @@ os.system("cls")
 
 if selection == "1":
     serial_reset()
-    print("Press Any Key To Close And If No Red Text Is Shown Above Then Process Was Successful You Can Then Reboot. If Red Text Is Shown Press Enter And Run This Tool Again.")
-    os.system("pause")
 elif selection == "2":
     long_boot()
 elif selection == "3":
     serial_reset()
-    print("Press Any Key To Continue To Longboot If No Red Text Is Present If Red Text Is Present Please Close This Tool And Re-Run It.")
-    os.system("pause")
     long_boot()
