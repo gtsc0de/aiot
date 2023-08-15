@@ -1,10 +1,37 @@
-import wmi, subprocess, os, time, re
+import wmi, subprocess, os, time, re, socket, requests
 
 special_regex = re.compile('[@_!#$%^&*()<>?/\|}{~:]')
 
-version = "0.10"
+version = "0.30"
 
 os.system("cls")
+
+def has_connection():
+    try:
+        sock = socket.create_connection(("www.google.com", 80))
+        if sock is not None:
+            sock.close
+        return True
+    except OSError:
+        pass
+    return False
+
+if has_connection():
+    print("Checking For Latest Update...")
+    request = requests.get("https://raw.githubusercontent.com/gtsc0de/aiot/main/version.txt")
+    version_server = request.text.replace("\n", "")
+    if version_server != version:
+        print("New Update Detected. Updating..")
+        new_script = requests.get("https://raw.githubusercontent.com/gtsc0de/aiot/main/tools.py")
+        new_contents = new_script.text
+        with open("C:\\TOOLS\\tools.py", "w+") as f:
+            f.write(new_script.text)
+            f.close()
+        subprocess.run("python C:\\TOOLS\\tools.py")
+        
+        
+else:
+    print("No Connection.. Skipping Update Check.")
 
 c = wmi.WMI()    
 systeminfo = c.Win32_ComputerSystem()[0]
@@ -85,10 +112,13 @@ def do_reset(s):
     
     reset_bios()
         
-def serial_reset():
+def serial_reset(standalone):
     print('Running Serial Reset For {0} AIO.'.format(mdl))
     serial = get_entered_serial()
     do_reset(serial)
+    if standalone:
+        print("Process completed successfully you may now shutdown or restart.")
+        os.system("pause")
 
 def do_long_boot():
     if mdl == "7440" or mdl == "7450":
@@ -130,9 +160,9 @@ while True:
 os.system("cls")
 
 if selection == "1":
-    serial_reset()
+    serial_reset(True)
 elif selection == "2":
     long_boot()
 elif selection == "3":
-    serial_reset()
+    serial_reset(False)
     long_boot()
